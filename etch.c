@@ -17,7 +17,7 @@ gsl_rng *rg;
 double T = 1.0;
 double mu = -10.0;
 double epsilon = 1.0;
-int npass = 5000;
+int npass = 1;
 double d = 1e-6; //small factor used when converting to int
 int nside; //to be read in
 int Nsurf = 0, Nvac = 0; //number of surface and vacany atoms
@@ -111,11 +111,11 @@ int main(int argc, char *argv[]){
   for(i = 0; i < 2*nside; i++){
     for(j = 0; j < 2*nside; j++){
       for(k = 0; k < 2*nside; k++){
-	traj[time][i][j][k].v.x = lat[i][j][k].v.x;
-	traj[time][i][j][k].v.y = lat[i][j][k].v.y;
-	traj[time][i][j][k].v.z = lat[i][j][k].v.z;
-	traj[time][i][j][k].n = lat[i][j][k].n;
-	traj[time][i][j][k].occ = lat[i][j][k].occ;
+		traj[time][i][j][k].v.x = lat[i][j][k].v.x;
+		traj[time][i][j][k].v.y = lat[i][j][k].v.y;
+		traj[time][i][j][k].v.z = lat[i][j][k].v.z;
+		traj[time][i][j][k].n = lat[i][j][k].n;
+		traj[time][i][j][k].occ = lat[i][j][k].occ;
       }
     }
   }
@@ -161,6 +161,10 @@ int main(int argc, char *argv[]){
   //Create an array that stores the number of surface atoms at every step
 
   /* Now do Monte Carlo ****************************************************/
+  test_one(lat, surf, vac);
+  test_two(lat, surf, vac);
+
+  /*
   for(l = 0; l < npass; l++){
     if(mc_move(lat, surf, vac) == 1) mc_accept++;
     if((l+1)%config_freq == 0){
@@ -180,6 +184,7 @@ int main(int argc, char *argv[]){
     }
     mc_total ++;
   }
+*/
 
   print_config(lat, nside);
   print_traj(traj);
@@ -195,6 +200,28 @@ int main(int argc, char *argv[]){
 /* OTHER FUNCTIONS ***********************************************************************/
 /*****************************************************************************************/
 
+int test_one(nn_vec ***r, triple *surf, triple *vac){
+
+	int temp = 0;
+	while(temp != 1){
+//		printf("Test. Attempting MC move.\n");
+	   	temp = mc_move(r, surf, vac);
+//		printf("%d\n", temp);
+	}
+
+	return temp;
+}
+
+int test_two(nn_vec ***r, triple *surf, triple *vac){
+
+	int temp = 0;
+	while(temp != 2){
+		temp = mc_move(r, surf, vac);
+	}
+
+	return temp;
+}
+
 int mc_move(nn_vec ***r, triple *surf, triple *vac){
 
   if(Nsurf == 0 || Nvac == 0) return 0;
@@ -204,6 +231,8 @@ int mc_move(nn_vec ***r, triple *surf, triple *vac){
 
   /**********************************INSERTION STEP*************************************************/
   if(xsi > 0.5){ //try insertion
+	
+	printf("Attempting insertion.\n");
     
     int Nstemp = 0;
     int Nvtemp = 0;
@@ -220,10 +249,14 @@ int mc_move(nn_vec ***r, triple *surf, triple *vac){
       if(nbs[i].occ == 0 && nbs[i].n == 0) Nvtemp ++; //increase in vacancy atoms if inserted
       if(nbs[i].occ == 1 && nbs[i].n == 11) Nstemp ++; //decrease in surface atoms if inserted
     }
+//	printf("num bonds: %d\n", dM);
     Nvtemp = Nvtemp - 1; //adding an atom in the vacancy would eliminate the vacancy
     Nstemp = Nstemp - 1; //adding a surface atom would counteract the decrease by 1
-    double alpha = (Nsurf-Nstemp)/(1.0*(Nvac+Nvtemp));
+    double alpha = 1.0/((Nsurf-Nstemp)/(1.0*Nvac));
     double weight = exp(mu/T + epsilon*dM/T)*alpha;
+
+	printf("alpha: %lf\n", alpha);
+	printf("Acceptance weight: %.15e\n", weight);
 
     if(weight > 1){ //accept it
       r[(int)(vac[m].x+d)][(int)(vac[m].y+d)][(int)(vac[m].z+d)].occ = 1; //make occupation number = 1
@@ -287,6 +320,10 @@ int mc_move(nn_vec ***r, triple *surf, triple *vac){
   /*******************************************DELETION STEP******************************************/
   else{ //try deletion
 
+	printf("Attempting deletion.\n");
+
+	if(Nsurf==1) return 0;
+
     int Nstemp = 0;
     int Nvtemp = 0;
 
@@ -303,8 +340,10 @@ int mc_move(nn_vec ***r, triple *surf, triple *vac){
     }
     Nvtemp = Nvtemp - 1; //deleting the atom would counteract the vacancy decrease by 1
     Nstemp = Nstemp - 1; //deleting the atom would decrease the number of surface atoms by 1
-    double alpha = (Nvac-Nvtemp)/(1.0*(Nsurf+Nstemp));
+    double alpha = 1.0/((Nvac-Nvtemp)/(1.0*Nsurf));
     double weight = exp(-mu/T - epsilon*dM/T)*alpha;
+
+	printf("Acceptance weight: %.15e\n", weight);
 
    if(weight > 1){ //accept it
       r[(int)(surf[m].x+d)][(int)(surf[m].y+d)][(int)(surf[m].z+d)].occ = 0; //make occupation number = 0
@@ -328,7 +367,7 @@ int mc_move(nn_vec ***r, triple *surf, triple *vac){
       if(r[(int)(surf[m].x+d)][(int)(surf[m].y+d)][(int)(surf[m].z+d)].n > 0) add(vac, &Nvac, surf[m].x, surf[m].y, surf[m].z);
       //and delete the atom from the surface list
       delete(surf, &Nsurf, surf[m].x, surf[m].y, surf[m].z);
-      return 1;
+      return 2;
    }else{
      double xsi2 = gsl_rng_uniform(rg);
       if(weight > xsi2){
@@ -354,7 +393,7 @@ int mc_move(nn_vec ***r, triple *surf, triple *vac){
 	if(r[(int)(surf[m].x+d)][(int)(surf[m].y+d)][(int)(surf[m].z+d)].n > 0) add(vac, &Nvac, surf[m].x, surf[m].y, surf[m].z);
 	//and delete the atom from the surface list
 	delete(surf, &Nsurf, surf[m].x, surf[m].y, surf[m].z);
-	return 1;
+	return 2;
       }else return 0;    
    }
   } 
