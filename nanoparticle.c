@@ -13,7 +13,7 @@ int main(int argc, char *argv[]) {
   //Set  constants
   double d = 4.065; //(Au-Au spacing in Angstroms)
   double a = d*sqrt(2.0); //unit cell length
-  int nside = 10; //number of unit cells in each dimension
+  int nside = 6; //number of unit cells in each dimension
   double L = a*nside; //length of side of cube
   int N = 4*nside*nside*nside; //total number of atoms (and vacancies)
 
@@ -54,8 +54,9 @@ void shape(char *name, nn_vec ***r, double a, int nside) {
   double L = a*nside;
   int N = 4*nside*nside*nside;
 
-  if(name == "point"){
+  if(name == "two_points"){
     r[nside][nside][nside].occ = 1;
+    r[nside][nside][nside-2].occ = 1;
 
     //get nearest neighbors
     for(i = 0; i < 2*nside; i++){
@@ -107,6 +108,54 @@ void shape(char *name, nn_vec ***r, double a, int nside) {
       }
     }
   }
+
+  if(name == "unit_cell"){
+    r[nside][nside][nside].occ = 1;
+    r[nside+1][nside+1][nside].occ = 1;
+    r[nside][nside+1][nside+1].occ = 1;
+    r[nside+1][nside][nside+1].occ = 1;
+
+  //calculate nearest neighbors
+    double nn_dist = a/sqrt(2.0);
+    for(i = 0; i < 2*nside; i++){
+      for(j = 0; j < 2*nside; j++){
+	for(k = 0; k < 2*nside; k++){
+	  if((i+j+k)%2==0){
+	    //Now a bunch of if statements in case you're on the edge of the lattice
+	      if(i>0 && j>0){
+		if(r[i-1][j-1][k].occ == 1) r[i][j][k].n ++;
+	      }if(i>0 && j<(2*nside-1)){
+		if(r[i-1][j+1][k].occ == 1) r[i][j][k].n ++;
+	      }if(i<(2*nside-1) && j>0){
+		if(r[i+1][j-1][k].occ == 1) r[i][j][k].n ++;
+	      }if(i<(2*nside-1) && j<(2*nside-1)){
+		if(r[i+1][j+1][k].occ == 1) r[i][j][k].n ++;
+	      }if(j>0 && k<(2*nside-1)){
+		if(r[i][j-1][k+1].occ == 1) r[i][j][k].n ++;
+	      }if(i>0 && k<(2*nside-1)){
+		if(r[i-1][j][k+1].occ == 1) r[i][j][k].n ++;
+	      }if(i<(2*nside-1) && k<(2*nside-1)){
+		if(r[i+1][j][k+1].occ == 1) r[i][j][k].n ++;
+	      }if(j<(2*nside-1) && k<(2*nside-1)){
+		if(r[i][j+1][k+1].occ == 1) r[i][j][k].n ++;
+	      }if(j>0 && k>0){
+		if(r[i][j-1][k-1].occ == 1) r[i][j][k].n ++;
+	      }if(i>0 && k>0){
+		if(r[i-1][j][k-1].occ == 1) r[i][j][k].n ++;
+	      }if(i<(2*nside-1) && k>0){
+		if(r[i+1][j][k-1].occ == 1) r[i][j][k].n ++;
+	      }if(j<(2*nside-1) && k>0){
+		if(r[i][j+1][k-1].occ == 1) r[i][j][k].n ++;
+	      }
+	    
+	  }
+	}
+      }
+    }
+  }  
+
+
+
 
   if(name == "sphere"){
     double R = 0.75*(L/2.0); //change this to adjust size of sphere
@@ -234,7 +283,7 @@ void print_config(nn_vec ***r, int nside) {
   for(i = 0; i < 2*nside; i++) {
     for(j = 0; j < 2*nside; j++){
       for(k = 0; k < 2*nside; k++){
-	if((i+j+k)%2 == 0){
+	if((i+j+k)%2 != 0){
 	  fprintf(f, "H\t%lf\t%lf\t%lf\t%d\t%d\n", r[i][j][k].v.x, r[i][j][k].v.y, r[i][j][k].v.z, r[i][j][k].n, r[i][j][k].occ);
 	}
        	else{
