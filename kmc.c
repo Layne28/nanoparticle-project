@@ -233,7 +233,7 @@ void kmc(nn_vec ***r, nn_vec ****traj, nbs_vec *queue, int *q){
     long unsigned int index = gsl_rng_uniform_int(rg, (unsigned long int)icnt);
 
 	  nbs_vec *neighbs = (nbs_vec *) calloc((size_t)NN, sizeof(nbs_vec));
-    printf("queue indices: %d %d %d %d\n", queue[index].x, queue[index].y, queue[index].z, queue[index].n);
+//    printf("queue indices: %d %d %d %d\n", queue[index].x, queue[index].y, queue[index].z, queue[index].n);
 	  neighbors(r, neighbs, queue[index].x, queue[index].y, queue[index].z);
     r[queue[index].x][queue[index].y][queue[index].z].occ = 0;
 
@@ -461,6 +461,7 @@ void pop(nbs_vec *list, int *length){
     list[i].x = list[i+1].x;
     list[i].y = list[i+1].y;
     list[i].z = list[i+1].z;
+    list[i].n = list[i+1].n;
   }
   *length = *length - 1;
 }

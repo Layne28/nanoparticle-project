@@ -201,11 +201,11 @@ void print_config(nn_vec ***r) {
     for(j = 0; j < 2*nl; j++){
       for(k = 0; k < 2*nl; k++){
 	if((i+j+k)%2 != 0){
-	  fprintf(f, "H\t%d\t%d\t%d\t%d\t%d\n", 5*(i-nl), 5*(j-nl), 5*(k-nl), r[i][j][k].n, r[i][j][k].occ);
+	  fprintf(f, "H\t%d\t%d\t%d\t%d\t%d\n", i, j, k, r[i][j][k].n, r[i][j][k].occ);
 	}
        	else{
-	  if(r[i][j][k].occ == 0) fprintf(f, "H\t%d\t%d\t%d\t%d\t%d\n", 5*(i-nl), 5*(j-nl), 5*(k-nl), r[i][j][k].n, r[i][j][k].occ);
-	  else  fprintf(f, "Au\t%d\t%d\t%d\t%d\t%d\n", 5*(i-nl), 5*(j-nl), 5*(k-nl), r[i][j][k].n, r[i][j][k].occ);
+	  if(r[i][j][k].occ == 0) fprintf(f, "H\t%d\t%d\t%d\t%d\t%d\n", i, j, k, r[i][j][k].n, r[i][j][k].occ);
+	  else  fprintf(f, "Au\t%d\t%d\t%d\t%d\t%d\n", i, j, k, r[i][j][k].n, r[i][j][k].occ);
 	}
       }
     }
