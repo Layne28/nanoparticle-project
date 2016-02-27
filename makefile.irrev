@@ -1,0 +1,57 @@
+# Example makefile with compilier warnings and automatic rules for a single
+# executable composed of a lst of sources and headers. Rename this file to 
+# Makefile and edit the variables defined under "EDIT THIS SECTION" 
+
+# Build executable with:
+# % make
+# Delete object files and executable with:
+# % make clean
+# Rebuild all objects and executable with:
+# % make -B
+
+# See the Manual (% man make) for more information
+
+## EDIT THIS SECTION ##
+#
+# Pick a name for your executable; e.g.: a.out
+EXECUTABLE := irrev.out 
+# List of source files in your project; e.g.: main.c 1.c 2.c ...
+SOURCES := etch_irrev.c 
+# List of header files for your project; e.g.: 1.h 2.h ...
+HEADERS := 
+# Compilier to use; maybe g++ or one of the portland group compilers
+CC := gcc
+#
+## NO EDITS REQUIRED BELOW ##
+
+SHELL = /bin/sh
+
+# Flags to pass to the compiler; per the reccomendations of the GNU Scientific Library
+CFLAGS:=-std=c99 -Werror -pedantic -Wall -W -Wmissing-prototypes -Wstrict-prototypes -Wconversion -Wshadow -Wpointer-arith -Wcast-qual -Wcast-align -Wwrite-strings -Wnested-externs -fshort-enums -fno-common 
+
+# Compilier flags controling optimization levels. Use -O3 for full optimization,
+# but make sure your results are consistent
+# -g includes debugging information. You can also add -pg here for profiling 
+OPTFLAGS:= -g -O2
+
+# Flags to pass to the linker; -lm links in the standard c math library
+LDFLAGS:= -lm -lgsl -lgslcblas 
+
+# Variable to compose names of object files from the names of sources
+OBJECTS = $(SOURCES:.c=.o)
+
+
+# Default target depends on sources and headers to detect changes
+all: $(SOURCES) $(HEADERS) $(EXECUTABLE)
+
+# Rule to compile a source file to object code
+%.o : %.c
+	$(CC) -c $(CFLAGS) $(OPTFLAGS) $< -o $@
+
+# Build the executable by linking all objects
+$(EXECUTABLE): $(OBJECTS)
+	$(CC) $(OBJECTS) $(LDFLAGS) -o $@
+
+# clean up so we can start over (removes executable!)
+clean:
+	rm *.o $(EXECUTABLE)
