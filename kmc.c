@@ -20,7 +20,7 @@ gsl_rng *rg;
 #define npass 8750000
 #define d 1e-6 //small factor used when converting to int
 //#define num_frames 500//Don't make this too high or you'll crash the computer.
-#define frame_rate  1
+#define frame_rate  10000
 int num_frames = 2*(nl*nl*nl)/frame_rate+2;
 
 double mu = (-6.5)*epsilon;
@@ -180,7 +180,7 @@ int main(void){
     }
   }
   fprintf(stderr,"Populated queue\n");
-  print_queue(lat,queue,q);
+  //print_queue(lat,queue,q);
   i = 0;
 
   //Create an array that stores the number of surface atoms at every step
@@ -247,8 +247,8 @@ void kmc_peel(nn_vec ***r, nn_vec ****traj, nbs_vec *queue, int ***queue_query, 
 	  neighbors(r, neighbs, queue[index].x, queue[index].y, queue[index].z);
     r[queue[index].x][queue[index].y][queue[index].z].occ = 0;
     queue_query[queue[index].x][queue[index].y][queue[index].z] = 0;
-    printf("queue indices: %d %d %d %d\n", queue[index].x, queue[index].y, queue[index].z, queue[index].n);
-	  pop(queue, q, 0);
+    //printf("queue indices: %d %d %d %d\n", queue[index].x, queue[index].y, queue[index].z, queue[index].n);
+	  pop(queue, q, (int)index);
 	  for(int i = 0; i < NN; i++) {
 	    int x = neighbs[i].x;
       int y = neighbs[i].y;

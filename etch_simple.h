@@ -3,7 +3,7 @@
 #ifndef ETCH_H
 #define ETCH_H
 
-#define nl 11
+#define nl 100
 #define NN 12
 
 //Define a 3-vector
