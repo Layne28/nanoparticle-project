@@ -193,7 +193,7 @@ void print_config(nn_vec ***r) {
   int N = 4*nl*nl*nl;
 
   FILE *f;
-  f = fopen("/home/layne/research/nanoparticle-project/init_config.xyz", "w");
+  f = fopen("init_config.xyz", "w");
 
   fprintf(f, "%d\n",2*N); //vmd will think there are twice as many atoms as there actually are, due to unused array elements
   fprintf(f, "initial configuration of gold nanoparticle\n");

@@ -19,3 +19,5 @@ np_cubic:
 kmc:
 
 	make -f makefile.kmc
+clean:
+	rm *.o *.out

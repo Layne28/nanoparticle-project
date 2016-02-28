@@ -3,7 +3,7 @@
 #ifndef ETCH_H
 #define ETCH_H
 
-#define nl 6
+#define nl 11
 #define NN 12
 
 //Define a 3-vector
@@ -44,6 +44,7 @@ void shape(const char *name, nn_vec ***r);
 void print_config(nn_vec ***r);
 void print_config_t(nn_vec ***r);
 void print_traj(nn_vec ****t);
+void print_queue(nn_vec ***lat, nbs_vec *queue, int q);
 void print_final(nn_vec ***r);
 void fcc(nn_vec ***r);
 double dotpdt(vec3 *a, vec3 *b); //Calculates the dot product of two 3D vectors and returns the value calculated
@@ -56,10 +57,11 @@ void add(triple *list, int *length, int x, int y, int z);
 void delete(triple *list, int *length, int x, int y, int z);
 
 //For manipulating queue
-void pop(nbs_vec *list, int *length);
-void push(nbs_vec *list, int *length, int x, int y, int z, int n);
+void pop(nbs_vec *list, int *length, int index);
+void push(nn_vec ***lat, nbs_vec *queue, int *length, int x, int y, int z, int n);
 
 
+void kmc_peel(nn_vec ***r, nn_vec ****traj, nbs_vec *queue, int ***queue_query, int *q);
 void kmc(nn_vec ***r, nn_vec ****traj, nbs_vec *queue, int *q);
 
 void record_nn(nn_vec ***r);
