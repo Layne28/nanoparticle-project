@@ -237,21 +237,13 @@ void kmc_peel(nn_vec ***r, nn_vec ****traj, nbs_vec *queue, int ***queue_query, 
   int fcount = 0; // current frame in the trajectory
   nbs_vec *neighbs = (nbs_vec *) calloc((size_t)NN, sizeof(nbs_vec));
 	while(*q > 0){
-    /* random pop 
-    int icnt = 0;
-    int in = queue[0].n;
-    while(in == queue[0].n){
-            in = queue[icnt].n;
-            icnt++;
+    int icnt=0;
+    int n0 = r[queue[0].x][queue[0].y][queue[0].z].n;
+    while (r[queue[icnt].x][queue[icnt].y][queue[icnt].z].n==n0) {
+      icnt++;
     }
-    icnt--; //you go ahead by one too many indices in the while loop
     long unsigned int index = gsl_rng_uniform_int(rg, (unsigned long int)icnt);
-
-	  neighbors(r, neighbs, queue[index].x, queue[index].y, queue[index].z);
-    r[queue[index].x][queue[index].y][queue[index].z].occ = 0;
-
-    */
-    int index=0;
+    //int index=0;
 	  neighbors(r, neighbs, queue[index].x, queue[index].y, queue[index].z);
     r[queue[index].x][queue[index].y][queue[index].z].occ = 0;
     queue_query[queue[index].x][queue[index].y][queue[index].z] = 0;
