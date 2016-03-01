@@ -14,7 +14,7 @@
 gsl_rng *rg;
 
 //Control variables - energies are in units of eV
-#define T 0.075//0.0259
+#define T 0.0259
 #define esub 3.930 //sublimation energy
 #define epsilon 0.3275 //energy per bond
 #define npass 8750000
@@ -22,6 +22,7 @@ gsl_rng *rg;
 //#define num_frames 500//Don't make this too high or you'll crash the computer.
 #define num_frames 100
 
+double koff = 1;
 double mu = (-6.5)*epsilon;
 double beta = 1.0/T;
 int Nsurf = 0, Nvac = 0; //number of surface and vacany atoms
@@ -160,7 +161,7 @@ int main(void){
   //Create an array that stores the number of surface atoms at every step
   /* Now do Monte Carlo ****************************************************/
   fprintf(stderr,"Starting the Kinetic Monte Carlo run.\n");
-  kmc(lat, queue, queue_query, &q);
+  kmc_peel(lat, queue, queue_query, &q);
   fprintf(stderr,"Finished Kinetic Monte Carlo run.\n");
 
 
@@ -248,12 +249,12 @@ void kmc_peel(nn_vec ***r, nbs_vec *queue, int ***queue_query, int *q){
 
 void kmc(nn_vec ***r, nbs_vec *queue, int ***queue_query, int *q){
   nbs_vec *neighbs = (nbs_vec *) calloc((size_t)NN, sizeof(nbs_vec));
-  double  *event_list = (double *) calloc((size_t)(8*nl*nl*nl), sizeof(double));
+  double  *event_list = (double *) calloc((size_t)(4*nl*nl*nl), sizeof(double));
   while (*q>0) {
     double R = 0;
     event_list[0] = 0;
     for (int i=0; i<*q; i++) {
-      R += exp(-beta*(epsilon*queue[i].n-beta*mu)); // compute the total rate
+      R += exp(-beta*(epsilon*queue[i].n)) / (exp(-beta*(epsilon*queue[i].n)) + koff); //-beta*mu)); // compute the total rate
       event_list[i+1]=R;
     }
     double event = gsl_rng_uniform_pos(rg);

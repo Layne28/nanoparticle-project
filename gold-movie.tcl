@@ -33,8 +33,9 @@ proc start {} {
 
 proc makemovie {framerate numframes} {
   set i 0
-  while {$i < $numframes} {
-    mol new [format "conf_%07d.xyz" $i] waitfor all autobonds off
+  set fcount 0
+  while {$fcount < $numframes} {
+    mol new [format "conf_%07d.xyz" $i] waitfor -1 autobonds off
     mol delrep 0 top
     # add new representations
     mol color Element
@@ -46,10 +47,11 @@ proc makemovie {framerate numframes} {
     color Display Background white
     display depthcue off
     display resize 800 800
+    display resetview
     scale by 0.6
-    display ambientocclusion on
     render TachyonInternal [format "movie_%07d.tga" $i]
     set i [expr $i + $framerate]
+    incr fcount 
     mol delete all
   }
 }
