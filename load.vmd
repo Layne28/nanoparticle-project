@@ -1,8 +1,7 @@
 # VMD for MACOSXX86, version 1.9.1 (February 4, 2012)
 # Log file '/Users/grant/nanoparticle-project/load.vmd', created by user grant
+mol new traj.xyz autobonds off waitfor -1
 mol modstyle 0 0 VDW 1.000000 12.000000
 mol modselect 0 0 name Au
 mol modstyle 0 0 VDW 0.300000 12.000000
 mol modcolor 0 0 ColorID 2
-# VMD for MACOSXX86, version 1.9.1 (February 4, 2012)
-# end of log file.

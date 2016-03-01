@@ -3,7 +3,7 @@
 #ifndef ETCH_H
 #define ETCH_H
 
-#define nl 100
+#define nl 20
 #define NN 12
 
 //Define a 3-vector
@@ -43,9 +43,8 @@ typedef struct {
 void shape(const char *name, nn_vec ***r);
 void print_config(nn_vec ***r);
 void print_config_t(nn_vec ***r);
-void print_traj(nn_vec ****t);
 void print_queue(nn_vec ***lat, nbs_vec *queue, int q);
-void print_final(nn_vec ***r);
+void print_conf(nn_vec ***r, int time, int Ntot);
 void fcc(nn_vec ***r);
 double dotpdt(vec3 *a, vec3 *b); //Calculates the dot product of two 3D vectors and returns the value calculated
 int mc_move(nn_vec ***r, triple *surf, triple *vac);
@@ -61,8 +60,8 @@ void pop(nbs_vec *list, int *length, int index);
 void push(nn_vec ***lat, nbs_vec *queue, int *length, int x, int y, int z, int n);
 
 
-void kmc_peel(nn_vec ***r, nn_vec ****traj, nbs_vec *queue, int ***queue_query, int *q);
-void kmc(nn_vec ***r, nn_vec ****traj, nbs_vec *queue, int *q);
+void kmc_peel(nn_vec ***r, nbs_vec *queue, int ***queue_query, int *q);
+void kmc(nn_vec ***r, nbs_vec *queue, int ***queue_query, int *q);
 
 void record_nn(nn_vec ***r);
 

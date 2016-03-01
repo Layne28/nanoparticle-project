@@ -20,27 +20,23 @@ gsl_rng *rg;
 #define npass 8750000
 #define d 1e-6 //small factor used when converting to int
 //#define num_frames 500//Don't make this too high or you'll crash the computer.
-#define frame_rate  10000
-int num_frames = 2*(nl*nl*nl)/frame_rate+2;
+#define num_frames 100
 
 double mu = (-6.5)*epsilon;
 double beta = 1.0/T;
-//int config_freq = npass/num_frames;
-int config_freq = 1000;
 int Nsurf = 0, Nvac = 0; //number of surface and vacany atoms
 int Nsurf0 = 0, Nvac0 = 0; //To keep track of initial numbers;
 int Ntot = 0;
+//int num_frames = 0;
+int frame_rate = 0;
 int time = 0;
 
 int temp_mc=0;
 
 int main(void){
-
-  printf("%d\n", config_freq);
+  int i,j,k;
 
   int Ngrid;
-  int i,j,k;
-  long l;
   long mc_total = 0; //number of total attempts
   //long mc_accept = 0;
   long mc_insert = 0; //number of insertion moves
@@ -103,31 +99,9 @@ int main(void){
   }
   fclose(in);
   in = NULL;
-
-  //Create a 'trajectory' array that stores configurations from mc steps
-  nn_vec ****traj;
-  //printf("npass/config_freq + 2: %d\n", npass/config_freq+2);
-  traj = (nn_vec ****)calloc((size_t)(num_frames), sizeof(nn_vec***));
-  for(l = 0; l < num_frames; l++){
-    traj[l] = (nn_vec ***) calloc((size_t)2*nl, sizeof(nn_vec**));
-    for(i = 0; i < 2*nl; i++){
-      traj[l][i] = (nn_vec **) calloc((size_t)2*nl, sizeof(nn_vec*));
-      for(j = 0; j < 2*nl; j++){
-	traj[l][i][j] = (nn_vec *) calloc((size_t)2*nl, sizeof(nn_vec));
-      }
-    }
-  }
-  fprintf(stderr,"Allocated the trajectory\n");
-
-  for(i = 0; i < 2*nl; i++){
-    for(j = 0; j < 2*nl; j++){
-      for(k = 0; k < 2*nl; k++){
-	traj[time][i][j][k].n = lat[i][j][k].n;
-	traj[time][i][j][k].occ = lat[i][j][k].occ;
-      }
-    }
-  }
-  time = time + 1;
+  //num_frames = Ntot/frame_rate +2;
+  frame_rate = Ntot/(num_frames-2);
+  fprintf(stderr,"Frame rate: %d Number of frames: %d\n", frame_rate, num_frames);
 
   printf("Total number of atoms at start: %d\n", Ntot);
   printf("number of surface atoms: %d\n", Nsurf);
@@ -186,13 +160,12 @@ int main(void){
   //Create an array that stores the number of surface atoms at every step
   /* Now do Monte Carlo ****************************************************/
   fprintf(stderr,"Starting the Kinetic Monte Carlo run.\n");
-  kmc_peel(lat, traj, queue, queue_query, &q);
+  kmc(lat, queue, queue_query, &q);
   fprintf(stderr,"Finished Kinetic Monte Carlo run.\n");
 
 
   //Print information//////////////////////////////////////////////////////////
-  print_traj(traj); //print whole trajectory
-//  print_final(lat); //print final configuration
+  //print_final(lat); //print final configuration
   printf("Total number of atoms at start: %d\n", Ntot);
   printf("final number of surface atoms: %d\n", Nsurf);
   printf("final number of vacancies: %d\n", Nvac);
@@ -216,38 +189,29 @@ int main(void){
   }
   free(lat);
 
-  for(l = 0; l < (num_frames); l++){
-    for(i = 0; i < 2*nl; i++){
-      for(j = 0; j < 2*nl; j++){
-	      free(traj[l][i][j]);
-      }
-      free(traj[l][i]);
-    }
-    free(traj[l]);
-  }
-  free(traj);
-
   return 1; //end of program
 }
 
 /* OTHER FUNCTIONS ***********************************************************************/
 /*****************************************************************************************/
 
-void kmc_peel(nn_vec ***r, nn_vec ****traj, nbs_vec *queue, int ***queue_query, int *q){
-  int fcount = 0; // current frame in the trajectory
+void kmc_peel(nn_vec ***r, nbs_vec *queue, int ***queue_query, int *q){
   nbs_vec *neighbs = (nbs_vec *) calloc((size_t)NN, sizeof(nbs_vec));
 	while(*q > 0){
     int icnt=0;
     int n0 = r[queue[0].x][queue[0].y][queue[0].z].n;
-    while (r[queue[icnt].x][queue[icnt].y][queue[icnt].z].n==n0) {
+    while (r[queue[icnt].x][queue[icnt].y][queue[icnt].z].n==n0 && icnt<*q-1) {
       icnt++;
     }
-    long unsigned int index = gsl_rng_uniform_int(rg, (unsigned long int)icnt);
-    //int index=0;
+    long unsigned int index;
+    if (icnt>0) {
+      index = gsl_rng_uniform_int(rg, (unsigned long int)icnt);
+    } else {
+      index = 0;
+    }
 	  neighbors(r, neighbs, queue[index].x, queue[index].y, queue[index].z);
     r[queue[index].x][queue[index].y][queue[index].z].occ = 0;
     queue_query[queue[index].x][queue[index].y][queue[index].z] = 0;
-    //printf("queue indices: %d %d %d %d\n", queue[index].x, queue[index].y, queue[index].z, queue[index].n);
 	  pop(queue, q, (int)index);
 	  for(int i = 0; i < NN; i++) {
 	    int x = neighbs[i].x;
@@ -255,7 +219,6 @@ void kmc_peel(nn_vec ***r, nn_vec ****traj, nbs_vec *queue, int ***queue_query, 
       int z = neighbs[i].z;
       int occ = neighbs[i].occ;
       r[x][y][z].n--;
-      //printf("neigh indices: %d %d %d %d\n", x, y, z, occ);
       if (occ==1) {
         // need to change neighbor number on the queue
         if (queue_query[x][y][z]==1) {
@@ -263,13 +226,10 @@ void kmc_peel(nn_vec ***r, nn_vec ****traj, nbs_vec *queue, int ***queue_query, 
           while (!(queue[nindex].x==x && queue[nindex].y==y && queue[nindex].z==z)) {
             nindex++;
           }
-         // fprintf(stderr,"pop/push: %d %d %d, %d, q: %d nindex %d, %d %d %d\n",x,y,z,r[x][y][z].n,*q, nindex,
-         //     queue[nindex].x,queue[nindex].y,queue[nindex].z);
           pop(queue, q, nindex);
           push(r,queue, q, x, y, z, r[x][y][z].n);
         }
         else {
-          //fprintf(stderr,"push: %d %d %d, %d, q: %d\n",x,y,z,r[x][y][z].n,*q);
           push(r, queue, q, x, y, z, r[x][y][z].n);
           queue_query[x][y][z] = 1;
         }           
@@ -277,29 +237,19 @@ void kmc_peel(nn_vec ***r, nn_vec ****traj, nbs_vec *queue, int ***queue_query, 
 	  }
 
     // dump the trajectory
-    int i,j,k;
-    if(time%frame_rate== 0){
-      fprintf(stderr,"dump traj, %d, %d %d\n",time,time/frame_rate,num_frames);
-      for(i = 0; i < 2*nl; i++){
-        for(j = 0; j < 2*nl; j++){
-          for(k = 0; k < 2*nl; k++){
-            traj[fcount][i][j][k].n = r[i][j][k].n;
-            traj[fcount][i][j][k].occ = r[i][j][k].occ;
-          }
-        }
-      } 
-      fcount++;
+    Ntot--;
+    if(time%frame_rate == 0) {
+      fprintf(stderr,"Printing at time %d, queue length %d, Ntot %d\n",time, *q, Ntot);
+      print_conf(r, time, *q);
     }
-    time ++;
-    //print_queue(r,queue,*q);
+    time++;
   }
 }
 
-void kmc(nn_vec ***r, nn_vec ****traj, nbs_vec *queue, int *q){
+void kmc(nn_vec ***r, nbs_vec *queue, int ***queue_query, int *q){
   nbs_vec *neighbs = (nbs_vec *) calloc((size_t)NN, sizeof(nbs_vec));
   double  *event_list = (double *) calloc((size_t)(8*nl*nl*nl), sizeof(double));
   while (*q>0) {
-    //if (time==1331) print_traj(traj);
     double R = 0;
     event_list[0] = 0;
     for (int i=0; i<*q; i++) {
@@ -311,52 +261,41 @@ void kmc(nn_vec ***r, nn_vec ****traj, nbs_vec *queue, int *q){
     while (!(event >= event_list[index]/R && event <= event_list[index+1]/R)) {
       index++;
     }
-    fprintf(stderr,"Attempting to carry out event (R=%f,rg=%f,eve=%f) is %d of %d at time %d\n",R,event,event_list[index]/R,index,*q,time);
     //u = gsl_rng_uniform_pos(rg);
     //dt = log(1/u)/R;
     //printf("queue indices: %d %d %d %d\n", queue[index].x, queue[index].y, queue[index].z, queue[index].n);
 	  neighbors(r, neighbs, queue[index].x, queue[index].y, queue[index].z);
     r[queue[index].x][queue[index].y][queue[index].z].occ = 0;
-
-    int x0 = queue[0].x;
-    int y0 = queue[0].y;
-    int z0 = queue[0].z;
-    int n0 = queue[0].n;
-    queue[0].x = queue[index].x;
-    queue[0].y = queue[index].y;
-    queue[0].z = queue[index].z;
-    queue[0].n = queue[index].n;
-    queue[index].x = x0;
-    queue[index].y = y0;
-    queue[index].z = z0;
-    queue[index].n = n0;
-
-	  pop(queue, q,0);
+	  pop(queue, q, index);
 	  for(int i = 0; i < NN; i++) {
 	    int x = neighbs[i].x;
       int y = neighbs[i].y;
       int z = neighbs[i].z;
       int occ = neighbs[i].occ;
-      int n = neighbs[i].n;
-      r[x][y][z].n --;
-	    if(occ == 1 && n == NN){
-        push(r,queue, q, x, y, z, n-1);
-      }           
+      r[x][y][z].n--;
+      if (occ==1) {
+        // need to change neighbor number on the queue
+        if (queue_query[x][y][z]==1) {
+          int nindex = 0;
+          while (!(queue[nindex].x==x && queue[nindex].y==y && queue[nindex].z==z)) {
+            nindex++;
+          }
+          pop(queue, q, nindex);
+          push(r,queue, q, x, y, z, r[x][y][z].n);
+        }
+        else {
+          push(r, queue, q, x, y, z, r[x][y][z].n);
+          queue_query[x][y][z] = 1;
+        }           
+      }
 	  }
 
     // dump the trajectory
-    int i,j,k;
-    if((time)%frame_rate == 0){
-      for(i = 0; i < 2*nl; i++){
-        for(j = 0; j < 2*nl; j++){
-          for(k = 0; k < 2*nl; k++){
-            traj[time/frame_rate][i][j][k].n = r[i][j][k].n;
-            traj[time/frame_rate][i][j][k].occ = r[i][j][k].occ;
-          }
-        }
-      } 
+    Ntot--;
+    if(time%frame_rate == 0) {
+      print_conf(r, time, *q);
     }
-    time ++;
+    time++;
   }
 }
 
@@ -440,37 +379,6 @@ void neighbors(nn_vec ***r, nbs_vec *nbs, int i, int j, int k){
    }
 }
 
-
-void print_traj(nn_vec ****t){
-
-  long length = num_frames-1;
-  int i,j,k;
-  long l;
-  int N = 4*nl*nl*nl;
-
-  FILE *f;
-  f = fopen("traj.xyz", "w");
-  for(l=0; l<length; l++){
-    fprintf(f,"%d\n", N); //this time, since we aren't using them again, just record the actual atoms
-    fprintf(f, "Step %ld\n", l+1);
-
-    for(i = 0; i < 2*nl; i++) {
-      for(j = 0; j < 2*nl; j++){
-        for(k = 0; k < 2*nl; k++){
-          if((i+j+k)%2 == 0){
-	    if(t[l][i][j][k].occ == 1)  fprintf(f, "Au\t%d\t%d\t%d\n", i-nl, j-nl, k-nl);
-	    //	    if(i==0 || i==2*nl-1 || j==0 || j==2*nl-1 || k==0 || k==2*nl-1) fprintf(f, "H\t%d\t%d\t%d\n", i-nl, j-nl, k-nl);
-	    else fprintf(f, "Au\t%d\t%d\t%d\n", 0, 0, 0);
-	  }
-	}
-      }
-    }
-  }
-  fclose(f);
-  f = NULL;
-
-}
-
 void print_queue(nn_vec ***lat, nbs_vec *queue, int q) {
   int x,y,z,n;
   int valid = 1, n0=0;
@@ -488,26 +396,22 @@ void print_queue(nn_vec ***lat, nbs_vec *queue, int q) {
   if (valid==0) exit(-1);
 }
 
-void print_final(nn_vec ***r) {
+void print_conf(nn_vec ***r, int t, int N) {
 
   int i,j,k;
-  int N = 4*nl*nl*nl;
-
   FILE *f;
-  f = fopen("/home/layne/research/nanoparticle-project/final_config.xyz", "w");
+  char filename[80];
+  sprintf(filename,"conf_%07d.xyz",t);
+  f = fopen(filename, "w");
 
-  fprintf(f, "%d\n",2*N); //vmd will think there are twice as many atoms as there actually are, due to unused array elements
+  fprintf(f, "%d\n",N); //vmd will think there are twice as many atoms as there actually are, due to unused array elements
   fprintf(f, "initial configuration of gold nanoparticle\n");
   for(i = 0; i < 2*nl; i++) {
-    for(j = 0; j < 2*nl; j++){
-      for(k = 0; k < 2*nl; k++){
-	if((i+j+k)%2 != 0){
-	  fprintf(f, "H\t%d\t%d\t%d\t%d\t%d\n", (i-nl), (j-nl), (k-nl), r[i][j][k].n, r[i][j][k].occ);
-	}
-       	else{
-	  if(r[i][j][k].occ == 0) fprintf(f, "H\t%d\t%d\t%d\t%d\t%d\n", (i-nl), (j-nl), (k-nl), r[i][j][k].n, r[i][j][k].occ);
-	  else  fprintf(f, "Au\t%d\t%d\t%d\t%d\t%d\n", (i-nl), (j-nl), (k-nl), r[i][j][k].n, r[i][j][k].occ);
-	}
+    for(j = 0; j < 2*nl; j++) {
+      for(k = 0; k < 2*nl; k++) {
+        if (r[i][j][k].occ == 1 && r[i][j][k].n < NN) {
+          fprintf(f, "Au\t%d\t%d\t%d\t%d\t%d\n", (i-nl), (j-nl), (k-nl), r[i][j][k].n, r[i][j][k].occ);
+        } //else fprintf(f, "Au\t%d\t%d\t%d\t%d\t%d\n", 0,0,0,0,0);
       }
     }
   }
