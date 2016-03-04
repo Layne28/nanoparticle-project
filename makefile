@@ -19,3 +19,16 @@ np_cubic:
 kmc:
 
 	make -f makefile.kmc
+
+etch_cubic:
+
+	make -f makefile.etch_cubic
+
+.PHONY:analyze
+analyze:
+
+	make -f makefile.analyze
+
+clean:
+
+	rm *.o *.out

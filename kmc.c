@@ -19,15 +19,16 @@ gsl_rng *rg;
 #define epsilon 0.3275 //energy per bond
 #define npass 8750000
 #define d 1e-6 //small factor used when converting to int
-#define num_frames 200 //Don't make this too high or you'll crash the computer.
+#define num_frames 100 //Don't make this too high or you'll crash the computer.
 
 double mu = (-6.5)*epsilon;
 double beta = 1.0/T;
 //int config_freq = npass/num_frames;
-int config_freq = 1000;
+int config_freq;
 int Nsurf = 0, Nvac = 0; //number of surface and vacany atoms
 int Nsurf0 = 0, Nvac0 = 0; //To keep track of initial numbers;
 int Ntot = 0;
+int traj_size;
 
 int temp_mc=0;
 
@@ -103,15 +104,19 @@ int main(void){
   in = NULL;
 
   //Create a 'trajectory' array that stores configurations from mc steps
+  
+  config_freq = Ntot/num_frames + 1;
+  traj_size = Ntot/config_freq + 10;
+
   nn_vec ****traj;
-  printf("npass/config_freq + 2: %d\n", npass/config_freq+2);
-  traj = (nn_vec ****)calloc((size_t)(npass/config_freq + 2), sizeof(nn_vec***));
-  for(l = 0; l < (npass/config_freq+2); l++){
+  printf("traj_size: %d\n", traj_size);
+  traj = (nn_vec ****)calloc((size_t)(traj_size), sizeof(nn_vec***));
+  for(l = 0; l < (traj_size); l++){
     traj[l] = (nn_vec ***) calloc((size_t)2*nl, sizeof(nn_vec**));
     for(i = 0; i < 2*nl; i++){
       traj[l][i] = (nn_vec **) calloc((size_t)2*nl, sizeof(nn_vec*));
       for(j = 0; j < 2*nl; j++){
-	traj[l][i][j] = (nn_vec *) calloc((size_t)2*nl, sizeof(nn_vec));
+      	traj[l][i][j] = (nn_vec *) calloc((size_t)2*nl, sizeof(nn_vec));
       }
     }
   }
@@ -119,11 +124,12 @@ int main(void){
   for(i = 0; i < 2*nl; i++){
     for(j = 0; j < 2*nl; j++){
       for(k = 0; k < 2*nl; k++){
-	traj[time][i][j][k].n = lat[i][j][k].n;
-	traj[time][i][j][k].occ = lat[i][j][k].occ;
+      	traj[time][i][j][k].n = lat[i][j][k].n;
+      	traj[time][i][j][k].occ = lat[i][j][k].occ;
       }
     }
   }
+
   time = time + 1;
 
   printf("Total number of atoms at start: %d\n", Ntot);
@@ -174,7 +180,6 @@ int main(void){
   /* Now do Monte Carlo ****************************************************/
 
   kmc(lat, traj, queue, &q);
-//  exit(-1);
   printf("%d\n", queue[0].n);
 
 
@@ -192,8 +197,8 @@ int main(void){
 
 ///////////////////////////
 //Free pointers
-  free(surf);
-  free(vac);
+//  free(surf);
+//  free(vac);
   for(i = 0; i < 2*nl; i++){
     for(j = 0; j < 2*nl; j++){
       free(lat[i][j]);
@@ -202,7 +207,7 @@ int main(void){
   }
   free(lat);
 
-  for(l = 0; l < (npass/config_freq+2); l++){
+  for(l = 0; l < traj_size; l++){
     for(i = 0; i < 2*nl; i++){
       for(j = 0; j < 2*nl; j++){
 	      free(traj[l][i][j]);
@@ -222,25 +227,30 @@ int main(void){
 void kmc(nn_vec ***r, nn_vec ****traj, nbs_vec *queue, int *q){
 
   int time = 0;
+  int tcnt = 0;
 
-	while(*q > 0){
+	while(*q > 1){
     int icnt = 0;
-    int in = queue[0].n;
-    while(in == queue[0].n){
-            in = queue[icnt].n;
-            icnt++;
+    int x0 = queue[0].x;
+    int y0 = queue[0].y;
+    int z0 = queue[0].z;
+    int in = r[x0][y0][z0].n;
+
+    while(in == r[x0][y0][z0].n){
+      int xi = queue[icnt].x;
+      int yi = queue[icnt].y;
+      int zi = queue[icnt].z;  
+//      printf("%d\n", r[xi][yi][zi].n);    
+      in = r[xi][yi][zi].n;
+      icnt++;
     }
     icnt--; //you go ahead by one too many indices in the while loop
     long unsigned int index = gsl_rng_uniform_int(rg, (unsigned long int)icnt);
 
 	  nbs_vec *neighbs = (nbs_vec *) calloc((size_t)NN, sizeof(nbs_vec));
-    printf("queue indices: %d %d %d %d\n", queue[index].x, queue[index].y, queue[index].z, queue[index].n);
 	  neighbors(r, neighbs, queue[index].x, queue[index].y, queue[index].z);
     r[queue[index].x][queue[index].y][queue[index].z].occ = 0;
 
-    int x0 = queue[0].x;
-    int y0 = queue[0].y;
-    int z0 = queue[0].z;
     int n0 = queue[0].n;
     queue[0].x = queue[index].x;
     queue[0].y = queue[index].y;
@@ -261,30 +271,31 @@ void kmc(nn_vec ***r, nn_vec ****traj, nbs_vec *queue, int *q){
       r[x][y][z].n --;
 	    if(occ == 1 && n == NN){
         push(queue, q, x, y, z, n-1);
-      }           
+      }
 	  }
 
 //   printf("%d\n", queue[0].n);
 
+
+  /* Print Trajectory */
   int i,j,k;
-//  if((time)%config_freq == 0){
-  if(time < npass/config_freq){
-  for(i = 0; i < 2*nl; i++){
-	  for(j = 0; j < 2*nl; j++){
-	    for(k = 0; k < 2*nl; k++){
-	      traj[time][i][j][k].n = r[i][j][k].n;
-	      traj[time][i][j][k].occ = r[i][j][k].occ;
-	    }
-	  }
-	} 
-// }
- }
+  if(time%config_freq == 0){
+   tcnt++;
+   for(i = 0; i < 2*nl; i++){
+  	  for(j = 0; j < 2*nl; j++){
+	      for(k = 0; k < 2*nl; k++){
+	        traj[tcnt][i][j][k].n = r[i][j][k].n;
+	        traj[tcnt][i][j][k].occ = r[i][j][k].occ;
+	      }
+	   }
+	  } 
+  }
+
   time ++;
+  Ntot --;
+  if(Ntot % 10000 == 0) printf("Num. atoms left: %d\n", Ntot);
   }
 }
-
-
-
 
 
 void neighbors(nn_vec ***r, nbs_vec *nbs, int i, int j, int k){
@@ -370,7 +381,7 @@ void neighbors(nn_vec ***r, nbs_vec *nbs, int i, int j, int k){
 
 void print_traj(nn_vec ****t){
 
-  long length = npass/config_freq+1;
+  long length = traj_size-1;
   int i,j,k;
   long l;
   int N = 4*nl*nl*nl;
