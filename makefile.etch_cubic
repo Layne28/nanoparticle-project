@@ -14,9 +14,9 @@
 ## EDIT THIS SECTION ##
 #
 # Pick a name for your executable; e.g.: a.out
-EXECUTABLE := etch.out 
+EXECUTABLE := etch_cubic.out 
 # List of source files in your project; e.g.: main.c 1.c 2.c ...
-SOURCES := etch2.c 
+SOURCES := etch_cubic.c 
 # List of header files for your project; e.g.: 1.h 2.h ...
 HEADERS := 
 # Compilier to use; maybe g++ or one of the portland group compilers

@@ -3,9 +3,8 @@
 #ifndef ETCH_H
 #define ETCH_H
 
-#define nl 50
-#define NN 12
-#define aspect_ratio 4
+#define nl 150
+#define NN 6
 
 //Define a 3-vector
 typedef struct {
@@ -42,10 +41,8 @@ typedef struct {
 // Initialize functions
 
 void shape(const char *name, nn_vec ***r);
-void print_shape(nn_vec ***r, const char *input);
+void print_config(nn_vec ***r);
 void print_config_t(nn_vec ***r);
-void print_surf(triple *surf, nn_vec ***r, int t, int N);
-void print_conf(nn_vec ***r, int t, int N);
 void print_traj(nn_vec ****t);
 void print_final(nn_vec ***r);
 void fcc(nn_vec ***r);

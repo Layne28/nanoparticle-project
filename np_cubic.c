@@ -7,7 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
-#include "etch_simple.h"
+#include "etch_cubic.h"
 
 int main(void){
 
@@ -50,19 +50,19 @@ void shape(const char *name, nn_vec ***r) {
     int Ntot = 0;
 
     double d = 4.065; //(Au-Au spacing in Angstroms)
-    double a = d*sqrt(2.0); //unit cell length
-    double c = 0.5*a;
+    double a = d; //unit cell length
+//    double c = 0.5*a;
     double L = a*nl; //length of side of cube
-    double R = 0.80*(L/2.0); //change this to adjust size of cube
+    double R = 0.70*(L/2.0); //change this to adjust size of cube
     double delta =  1e-5; //small buffer for comparison
 
     for(i = 0; i < nl; i++){
       for(j = 0; j < nl; j++){
 	for(k = 0; k < nl; k++){
 	    vec3 temp;
-	    temp.x = i*c - L/2;
-	    temp.y = j*c - L/2;
-	    temp.z = k*c - L/2;
+	    temp.x = i*a - L/2;
+	    temp.y = j*a - L/2;
+	    temp.z = k*a - L/2;
 	    if(fabs(temp.x) < R+delta && fabs(temp.y) < R+delta && fabs(temp.z) < R+delta){
 	      r[i][j][k].occ = 1;
 	      Ntot++;
@@ -84,8 +84,8 @@ void shape(const char *name, nn_vec ***r) {
     int Ntot = 0;
 
     double d = 4.065; //(Au-Au spacing in Angstroms)
-    double a = d*sqrt(2.0); //unit cell length
-    double c = 0.5*a;
+    double a = d; //unit cell length
+//    double c = 0.5*a;
     double L = a*nl; //length of side of cube
     double R = 0.8*(L/2.0); //change this to adjust size of sphere
     double delta =  1e-5; //small buffer for comparison
@@ -95,9 +95,9 @@ void shape(const char *name, nn_vec ***r) {
       for(j = 0; j < nl; j++){
 	for(k = 0; k < nl; k++){
 	    vec3 temp;
-	    temp.x = i*c - L/2;
-	    temp.y = j*c - L/2;
-	    temp.z = k*c - L/2;
+	    temp.x = i*a - L/2;
+	    temp.y = j*a - L/2;
+	    temp.z = k*a - L/2;
 	    double rmag = sqrt(dotpdt(&temp, &temp));
 	    if(rmag < (R+delta)){
 	      r[i][j][k].occ = 1;
@@ -125,7 +125,7 @@ void record_nn(nn_vec ***r){
 		if(r[i][j-1][k].occ == 1) r[i][j][k].n ++;
 	    }if(j<(nl-1)){
 		if(r[i][j+1][k].occ == 1) r[i][j][k].n ++;
-            }if(k<0){
+            }if(k>0){
 		if(r[i][j][k-1].occ == 1) r[i][j][k].n ++;
             }if(k<(nl-1)){
 		if(r[i][j][k+1].occ == 1) r[i][j][k].n ++;
@@ -138,18 +138,18 @@ void record_nn(nn_vec ***r){
 void print_config(nn_vec ***r) {
 
   int i,j,k;
-  int N = 4*nl*nl*nl;
+  int N = nl*nl*nl;
 
   FILE *f;
   f = fopen("/home/layne/research/nanoparticle-project/init_config.xyz", "w");
 
-  fprintf(f, "%d\n",2*N); //vmd will think there are twice as many atoms as there actually are, due to unused array elements
+  fprintf(f, "%d\n", N); //vmd will think there are twice as many atoms as there actually are, due to unused array elements
   fprintf(f, "initial configuration of gold nanoparticle\n");
   for(i = 0; i < nl; i++) {
     for(j = 0; j < nl; j++){
       for(k = 0; k < nl; k++){
-	if(r[i][j][k].occ == 0) fprintf(f, "H\t%d\t%d\t%d\t%d\t%d\n", 5*(i-nl), 5*(j-nl), 5*(k-nl), r[i][j][k].n, r[i][j][k].occ);
-	else  fprintf(f, "Au\t%d\t%d\t%d\t%d\t%d\n", 5*(i-nl), 5*(j-nl), 5*(k-nl), r[i][j][k].n, r[i][j][k].occ);
+	if(r[i][j][k].occ == 0) fprintf(f, "H\t%d\t%d\t%d\t%d\t%d\n", i, j, k, r[i][j][k].n, r[i][j][k].occ);
+	else  fprintf(f, "Au\t%d\t%d\t%d\t%d\t%d\n", i, j, k, r[i][j][k].n, r[i][j][k].occ);
       }
     }
   }
